@@ -1,0 +1,168 @@
+<html>
+<head>
+  <title>HTML5</title>
+  
+  <!--D3 code stolen from: http://bost.ocks.org/mike/leaflet/#init-->
+  
+  <!--This file used in blog post Spatial data on a diet: tips 
+   for file size reduction using TopoJSON (http://bit.ly/1jvHiqF)-->
+  
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=650, user-scalable=yes">
+  <script src="http://ajax.googleapis.com/ajax/libs/jquery/1.11.0/jquery.min.js"></script>
+  <link rel="stylesheet" href="http://cdn.leafletjs.com/leaflet-0.7.2/leaflet.css" />
+  <script src="http://cdn.leafletjs.com/leaflet-0.7.2/leaflet.js"></script>
+  <script type="text/javascript" src="leaflet.points-layer.js"></script>
+  <script src="http://d3js.org/topojson.v1.min.js"></script>
+  <script src="http://d3js.org/d3.v3.min.js" charset="utf-8"></script>
+  
+  <style>
+   path {
+    fill: #000;
+    fill-opacity: .2;
+    stroke: #003399;
+    stroke-width: 1.5px;
+  }
+  path:hover {
+    fill: brown;
+    fill-opacity: .7;
+  }
+  html, body {
+    height: 100%;
+    margin: 0;
+  }
+  
+  #mapcanvas{
+   
+    height:100%;
+  }
+  
+</style>
+
+<script>
+ 
+   //d3 code stolen from http://bost.ocks.org/mike/leaflet/#init
+   var geoJsonObject;
+   
+   $(document).ready(function(){
+     
+    map = new L.Map('mapcanvas');
+    var osmUrl='http://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png';
+    var osmAttrib='Map data © <a href="http://openstreetmap.org">OpenStreetMap</a> contributors';
+    var osm = new L.TileLayer(osmUrl, {attribution: osmAttrib});		
+    map.setView(new L.LatLng(36.788283, -119.805891),6);
+    map.addLayer(osm);
+    var svg = d3.select(map.getPanes().overlayPane).append("svg"),
+    g = svg.append("g").attr("class", "leaflet-zoom-hide");
+    d3.json("ustime.json", function(collection) {
+      
+      var chart = timeseries_chart(scheme)
+                    .x(get_time).xLabel("Boarding time")
+                    .y(get_magnitude).yLabel("Counts")
+                    .brushmove(on_brush);
+                  
+      collection = topojson.feature(collection, collection.objects.counties)
+      var transform = d3.geo.transform({point: projectPoint}),
+      path = d3.geo.path().projection(transform);
+      var feature = g.selectAll("path")
+      .data(collection.features)
+      .enter().append("path");
+    //d3 code stolen from http://bost.ocks.org/mike/leaflet/#init
+      map.on("viewreset", reset);
+
+            
+            
+
+            d3.select("body").datum(collection.features).call(chart);
+      reset();
+
+//
+function get_time(d) {
+
+            return d3.time.format.iso.parse(d.properties.boardtime);
+        }
+
+        function get_magnitude(d) {
+            return +d.properties.counts;
+        }
+
+        function on_brush(brush) {
+            var s = brush.extent();
+            d3.selectAll(".circle").classed("selected", function (d) {
+                var time = get_time(d);
+                return s[0] <= time && time <= s[1];
+            });
+        }
+
+        function get_radius(d) {
+            
+            return d.properties.counts * d.properties.counts;
+        }
+
+        function circle_style(circles) {
+            if (!(extent && scale)) {
+                extent = d3.extent(circles.data(), function (d) { return d.properties.depth; });
+                scale = d3.scale.log()
+                        .domain(reverse ? extent.reverse() : extent)
+                        .range(d3.range(classes));
+            }
+            circles.attr('opacity', 0.4)
+                .attr('stroke', scheme[classes - 1])
+                .attr('stroke-width', 1)
+                .attr('fill', function (d) {
+                    return scheme[(scale(d.properties.counts) * 10).toFixed()];
+                });
+
+            circles.on('click', function (d, i) {
+                L.DomEvent.stopPropagation(d3.event);
+
+                var t = '<h3><%- id %></h3>' +
+                        '<ul>' +
+                        '<li>Counts: <%- mag %></li>' +
+                        '<li>Counts: <%- depth %>km</li>' +
+                        '</ul>';
+
+                var data = {
+                        id: d.id,
+                        mag: d.properties.counts,
+                        depth: d.properties.counts
+                    };
+
+                L.popup()
+                    .setLatLng([d.geometry.coordinates[1], d.geometry.coordinates[0]])
+                    .setContent(_.template(t, data))
+                    .openOn(map);
+
+            });
+        }
+
+        
+//
+
+      function reset() {
+        var bounds = path.bounds(collection),
+        topLeft = bounds[0],
+        bottomRight = bounds[1];
+        svg .attr("width", bottomRight[0] - topLeft[0])
+        .attr("height", bottomRight[1] - topLeft[1])
+        .style("left", topLeft[0] + "px")
+        .style("top", topLeft[1] + "px");
+        g   .attr("transform", "translate(" + -topLeft[0] + "," + -topLeft[1] + ")");
+        feature.attr("d", path);
+      }
+      function projectPoint(x, y) {
+        var point = map.latLngToLayerPoint(new L.LatLng(y, x));
+        this.stream.point(point.x, point.y);
+      }
+    });
+  });//end document ready
+</script>
+
+</head>
+<body>
+  <div id="mapcanvas">
+  </div>
+</body>
+
+
+</html>

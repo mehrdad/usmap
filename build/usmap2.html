@@ -1,0 +1,218 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<style>
+
+.land {
+  fill: #ddd;
+}
+
+.border {
+  fill: none;
+  stroke: #fff;
+  stroke-linejoin: round;
+  stroke-linecap: round;
+}
+
+.bubble {
+  fill: brown;
+  fill-opacity: .5;
+  stroke: #fff;
+  stroke-width: .5px;
+}
+
+.bubble :hover {
+  stroke: #000;
+}
+
+.legend circle {
+  fill: none;
+  stroke: #ccc;
+}
+
+.legend text {
+  fill: #777;
+  font: 10px sans-serif;
+  text-anchor: middle;
+}
+
+.twinkle {
+ animation: pulse 5s infinite;
+}
+
+.twinkle2 {
+  animation: pulse 4s infinite;
+}
+
+.twinkleCaffinated {
+  animation: pulse2 0.5s infinite;
+}
+
+@keyframes pulse {
+ 0% {
+   fill-opacity: .5;
+ }
+ 50% {
+   fill-opacity: 0.9;
+   fill: #ffffff;
+ }
+ 100% {
+   fill-opacity: .5;
+ }
+}
+
+@keyframes pulse2 {
+ 0% {
+   fill-opacity: .5;
+ }
+ 50% {
+   fill-opacity: 0.9;
+ }
+ 100% {
+   fill-opacity: .5;
+ }
+}
+
+</style>
+<body>
+<script src="//d3js.org/d3.v3.min.js"></script>
+<script src="//d3js.org/topojson.v1.min.js"></script>
+<script>
+
+var width = 960,
+    height = 600;
+
+var formatNumber = d3.format(",.0f");
+
+var path = d3.geo.path()
+    .projection(null);
+
+
+
+var max = 1e9;
+
+var radius = d3.scale.sqrt()
+    .domain([0, max])
+    .range([0, 15]);
+
+var svg = d3.select("body").append("svg")
+    .attr("width", width)
+    .attr("height", height);
+
+var legend = svg.append("g")
+    .attr("class", "legend")
+    .attr("transform", "translate(" + (width - 50) + "," + (height - 20) + ")")
+  .selectAll("g")
+    .data([1e6, 5e6, 1e7])
+  .enter().append("g");
+
+legend.append("circle")
+    .attr("cy", function(d) { return -radius(d); })
+    .attr("r", radius);
+
+/* legend.append("text")
+    .attr("y", function(d) { return -2 * radius(d); })
+    .attr("dy", "1.3em")
+    .text(d3.format(".1s"));
+
+
+*/
+
+function particle(m) {
+  svg.append("circle")
+      .attr("cx", m[0])
+      .attr("cy", m[1])
+      .attr("r", 1e-6)
+      .style("stroke", z(++i))
+      .style("stroke-opacity", 1)
+    .transition()
+      .duration(2000)
+      .ease(Math.sqrt)
+      .attr("r", 100)
+      .style("stroke-opacity", 1e-6)
+      .remove();
+    }
+
+d3.json("us.json", function(error, us) {
+  if (error) throw error;
+
+  svg.append("path")
+      .datum(topojson.feature(us, us.objects.nation))
+      .attr("class", "land")
+      .attr("d", path);
+
+  svg.append("path")
+      .datum(topojson.mesh(us, us.objects.states, function(a, b) { return a !== b; }))
+      .attr("class", "border border--state")
+      .attr("d", path);
+
+  window.circles = svg.append("g")
+    .attr("class", "bubble")
+    .selectAll("circle")
+      .data(topojson.feature(us, us.objects.counties).features
+        .sort(function(a, b) { return b.properties.population - a.properties.population; }))
+    .enter().append("circle");
+
+  window.circles
+    .attr("transform", function(d) { return "translate(" + path.centroid(d) + ")"; })
+    .attr("r", function(d) { return radius(d.properties.population); })
+    .on("mouseover", function() {
+      d3.select(this)
+      .attr("transform", function(d) { return "translate(" + path.centroid(d) + ") scale(1.1)"; })
+    })
+    .on("mouseout", function() {
+      d3.select(this)
+      .attr("transform", function(d) { return "translate(" + path.centroid(d) + ")"; })
+    })
+    .particle(d3.selectAll("circles"))
+  .append("title")
+    .text(function(d) {
+      return d.properties.name
+          + "\nPopulation UPB: " + formatNumber(d.properties.population);
+    });
+
+
+});
+
+setInterval(function() {
+  circles[0].forEach(function(d){
+    d.classList.remove('twinkle')
+    if (Math.random() > 0.95) { d.classList.add('twinkle') }
+  })
+}, 5000)
+
+setInterval(function() {
+  circles[0].forEach(function(d){
+    d.classList.remove('twinkle2')
+    if (Math.random() > 0.95) { d.classList.add('twinkle2') }
+  })
+}, 8000)
+
+setInterval(function() {
+  circles[0].forEach(function(d){
+    d.classList.remove('twinkleCaffinated')
+    if (Math.random() > 0.99) { d.classList.add('twinkleCaffinated') }
+  })
+}, 500)
+
+var z = d3.scale.category20c(),
+    i = 0;
+
+
+function particle(m) {
+  svg.append("circle")
+      .attr("cx", m[0])
+      .attr("cy", m[1])
+      .attr("r", 1e-6)
+      .style("stroke", z(++i))
+      .style("stroke-opacity", 1)
+    .transition()
+      .duration(2000)
+      .ease(Math.sqrt)
+      .attr("r", 100)
+      .style("stroke-opacity", 1e-6)
+      .remove();
+    }
+
+d3.select(self.frameElement).style("height", height + "px");
+
+</script>
